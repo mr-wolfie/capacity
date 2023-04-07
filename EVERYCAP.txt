@@ -1,0 +1,89 @@
+EveryCap is an extension of the Capacity object. The main purpose for this class
+is to quickly run through all the possible capacities for a list of skus. I
+*may* also work in support for Item objects as well, which is a good use of the
+OOP structure. Maybe I'll create an extended Item that handles meta properties
+of items, such as if it's color to default to keeping it in the box in grey
+shelves, if it's developer to keep it below eye level, if it's liters/gallons to
+keep it off the top shelf, if it's liquid bottles not to lay it down. All these
+properties would be stored in another table, and possibly seperated out by
+warehouse... or have defaults with warehouse override options... One thing at a
+time though! For now, I'll try to write it with Item objects and future
+variations easily compatible.
+
+__construct(Conn $pdo = null, int $whs = null, string $cntry = 'USA') public:
+Creates an EveryCap object with extra capabilites such as querying the database
+for multiple skus in a single request and providing all possible capacties (as
+well as suggesting the highest).
+
+set_slot_dims() protected: Collects the various slot dimension options stored in
+the database as well as the location id (LOC_ID) and shelf type (0 - grey shelf,
+1 - old flow rack, 2 - new flow rack, 4 - half flow rack {currently EA}) and
+stores it all in an array in ->dims[LOC_ID]. Returns a count of the slots set
+when complete.
+
+get_slot_dims() public: Returns the array from ->dims.
+
+set_items(array $skus) public: Takes an array of skus, verifies each is a valid
+sku number, sets each sku as a key in the array ->items and returns TRUE if all
+is well, otherwise false.
+
+get_items() public: Returns the array from ->items.
+
+set_cubes() public: Connects to the database and receives the cubing information
+for the SKUs Each (EA), Inner Case Pack (ICP), and Case (CS) dimensions as
+length (LN), width (WD), height (HT), and weight (WT), as well as the inner case
+pack (IN_MCP). These are stored under ->items[sku][size_dim], such as:
+->items[815700]['EA_LN']
+->items[815700]['CS_HT']
+->items[815700]['ICP_WT']
+This returns TRUE when complete.
+
+set_stats() public: Connects to the database and receives the statistic
+information for the SKUs description ['DESCR'], size ['SIZE'], and master case
+pack ['MCP'] for each sku, and sets it to ->items[sku][stat]. Returns TRUE on
+completion.
+
+set_meta() public: This function will connect to the database and receive
+information such as if an item can be laid down in a grey shelf, if it's color
+can be laid on it's side in a half flow rack, if it's developer and needs to be
+below eye level, etc. As none of this data is set up yet, it currently runs with
+the following defaults:
+[0]['TURN'] = 1; Grey shelf, turned
+[0]['STACK'] = 1; Grey shelf, stacked
+[0]['LAY'] = 1; Grey shelf, laid down
+[1]['TURN'] = 0; Old flow, not turned
+[1]['STACK'] = 0; Old flow, not stacked
+[1]['LAY'] = 0; Old flow, not laid down
+[2]['TURN'] = 0; New flow, not turned
+[2]['STACK'] = 0; New flow, not stacked
+[2]['LAY'] = 0; New flow, not laid down
+[4]['TURN'] = 0; Half flow, not turned
+[4]['STACK'] = 0; Half flow, not stacked
+[4]['LAY'] = 1; Half flow, laid down
+Returns TRUE on completion.
+
+set_cap_arr(int $sku) public: Sets the meta data and dimensions for the current
+Capacity object to those specified in ->items[$sku] and calculates the capacties
+of all the possibilities in ->dims, as well as describing the orientation of
+each and the highest possible capacity with the restrictions specified in the
+meta data. It then stores all this in ->items[sku]['CAPS']. Returns TRUE on
+completion.
+
+collect_caps() public: Iterates through each sku in ->items and runs
+set_cap_arr($sku). Returns TRUE on completion.
+
+format() public: This is still in process but will give a variety of output
+formats, including JSON, csv, and possibly xls.
+
+test_it(array $skus) public: Accepts an array of SKUs and runs it through the
+entire process, describing each step being taken and often what the results are.
+Useful for debugging. Returns a JSON of ->items.
+
+do_it(array $skus) public: Accepts an array of SKUs and runs through the
+entire process, and describes each step. Mostly for demonstration of what is
+happening. Returns a JSON of ->items.
+
+just_do_it(array $skus) public: Accepts an array of SKUs and runs through the
+entire process silently until it return an output. Currently just a JSON of
+->items, but when format() is complete this will be updated to return the format
+specified.
